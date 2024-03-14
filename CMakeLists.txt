@@ -8,7 +8,6 @@ set(F_CPU 1000000)
 # Define the target source files (add all source files here)
 set(SRC
         src/main.cpp
-        src/Time.cpp
         # Add any additional source files here
 )
 
