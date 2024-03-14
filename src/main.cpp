@@ -1,16 +1,10 @@
 #include<avr/io.h>
-#include<util/delay.h>
-#include<stdbool.h>;
 #include<avr/interrupt.h>
 #include <avr/sleep.h>
 
-struct Time {
-    uint8_t hours;
-    uint8_t minutes;
-    uint8_t seconds;
-};
+#include "./Time.h"
 
-struct Time currentTime = {1, 1, 1};
+static Time currentTime;
 
 struct PortPin {
     volatile uint8_t *port;
@@ -34,23 +28,6 @@ struct PortPin minutePins[] = {
     {&PORTC, PC5},
 };
 
-void increaseTime() {
-    currentTime.seconds++;
-    if (currentTime.seconds == 60) {
-        currentTime.seconds = 0;
-        currentTime.minutes++;
-        if (currentTime.minutes == 60) {
-            currentTime.minutes = 0;
-            currentTime.hours++;
-            if (currentTime.hours == 24) {
-                currentTime.hours = 0;
-            }
-        }
-    }
-}
-
-
-
 volatile bool test = false;
 
 void setPins(struct PortPin p, uint8_t value) {
@@ -65,12 +42,12 @@ uint8_t getBits(uint8_t number, uint8_t start, uint8_t end) {
     return (number >> start) & ((1 << (end - start + 1)) - 1);
 }
 
-void timeToPins(struct Time time) {
+void timeToPins(Time time) {
     for (int i = 0; i < 5; i++) {
-        setPins(hourPins[i], getBits(time.hours, i, i));
+        setPins(hourPins[i], getBits(time.getHours(), i, i));
     }
     for (int i = 0; i < 6; i++) {
-        setPins(minutePins[i], getBits(time.minutes, i, i));
+        setPins(minutePins[i], getBits(time.getMinutes(), i, i));
     }
 }
 
@@ -89,12 +66,12 @@ ISR(INT1_vect) {
     // Umschalten des Schlafmodus-Zustands bei jedem Interrupt
     sleepEnabled = !sleepEnabled;
     // disable all pins
-    struct Time time = {0, 0, 0};
+    const Time time;
     timeToPins(time);
 }
 
 ISR(TIMER2_COMPA_vect){
-    increaseTime();
+    currentTime.increaseTime();
 }
 
 
@@ -154,6 +131,7 @@ int main() {
             // // Schlafmodus deaktivieren
             // sleep_disable();
         }else {
+            currentTime.increaseTime();
             timeToPins(currentTime);
         }
 
