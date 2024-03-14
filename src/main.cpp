@@ -97,7 +97,20 @@ int main() {
     EIMSK |= (1 << INT1);
 
     // Configure Timer2 for asynchronous operation
-    // ... (Timer configuration remains the same)
+    // Set up Timer 2 for asynchronous operation
+    ASSR |= (1 << AS2); // Enable asynchronous mode
+
+    // Set up Timer 2 control register A and B
+    TCCR2A |= (1 << WGM21); // Configure timer for CTC mode
+    TCCR2B |= (1 << CS22) | (1 << CS20); // Set prescaler to 128
+
+    // Set the compare match register to the value that generates an interrupt every second
+    OCR2A = 255; // This value will need to be adjusted based on your clock source
+
+    // Enable Timer 2 compare match interrupt
+    TIMSK2 |= (1 << OCIE2A);
+
+    while (ASSR & ((1 << TCR2BUB) | (1 << TCR2AUB) | (1 << OCR2BUB) | (1 << OCR2AUB) | (1 << TCN2UB)));
 
     set_sleep_mode(SLEEP_MODE_PWR_SAVE);
 
@@ -107,7 +120,7 @@ int main() {
         if (sleepEnabled) {
             sleep_mode(); // Enter sleep mode
         } else {
-            currentTime.increase();
+            // currentTime.increase();
             timeToPins(currentTime);
         }
     }
