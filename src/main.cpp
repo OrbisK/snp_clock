@@ -34,15 +34,16 @@ public:
     volatile uint8_t *port;
     uint8_t pin;
 
-    PortPin(volatile uint8_t *p, uint8_t pn) : port(p), pin(pn) {}
+    PortPin(volatile uint8_t *p, const uint8_t pn) : port(p), pin(pn) {}
 
-    void set(bool value) const {
+    void set(const bool value) const {
         if (value) {
             *port |= (1 << pin);
         } else {
             *port &= ~(1 << pin);
         }
     }
+
 };
 
 PortPin hourPins[] = {
@@ -62,6 +63,7 @@ PortPin minutePins[] = {
     PortPin(&PORTC, PC5),
 };
 
+
 void timeToPins(const Time& time) {
     for (int i = 0; i < 5; i++) {
         hourPins[i].set(time.hours & (1 << i));
@@ -71,12 +73,16 @@ void timeToPins(const Time& time) {
     }
 }
 
+void handleSleepMode() {
+    Time time = {0,0,0};
+    timeToPins(time);
+    sleep_mode(); // Enter sleep mode
+}
+
 volatile bool sleepEnabled = false; // Zustandsvariable für den Schlafmodus
 
 ISR(INT1_vect) {
     sleepEnabled = !sleepEnabled;
-    Time time(0, 0, 0);
-    timeToPins(time);
 }
 
 ISR(TIMER2_COMPA_vect) {
@@ -105,7 +111,7 @@ int main() {
     TCCR2B |= (1 << CS22) | (1 << CS20); // Set prescaler to 128
 
     // Set the compare match register to the value that generates an interrupt every second
-    OCR2A = 255; // This value will need to be adjusted based on your clock source
+    OCR2A = 1;
 
     // Enable Timer 2 compare match interrupt
     TIMSK2 |= (1 << OCIE2A);
@@ -118,7 +124,7 @@ int main() {
 
     while (true) {
         if (sleepEnabled) {
-            sleep_mode(); // Enter sleep mode
+            handleSleepMode();
         } else {
             // currentTime.increase();
             timeToPins(currentTime);
