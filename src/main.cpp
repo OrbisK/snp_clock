@@ -18,26 +18,58 @@ public:
     uint8_t minutes;
     uint8_t seconds;
 
-    Time(uint8_t h, uint8_t m, uint8_t s) : hours(h), minutes(m), seconds(s) {
+    Time(const uint8_t h, const uint8_t m, const uint8_t s) : hours(h), minutes(m), seconds(s) {
     }
 
-    void increase() {
+    void increaseHours() {
+        hours++;
+        if (hours == 24) {
+            hours = 0;
+        }
+    }
+
+    void increseMinutes() {
+        minutes++;
+        if (minutes == 60) {
+            minutes = 0;
+            increaseHours();
+        }
+    }
+
+    void increaseSeconds(){
         seconds++;
         if (seconds == 60) {
             seconds = 0;
-            minutes++;
-            if (minutes == 60) {
-                minutes = 0;
-                hours++;
-                if (hours == 24) {
-                    hours = 0;
-                }
-            }
+            increseMinutes();
+        }
+    }
+
+    void decreaseHours() {
+        if (hours == 0) {
+            hours = 23;
+        } else {
+            hours--;
+        }
+    }
+
+    void decreaseMinutes() {
+        if (minutes == 0) {
+            minutes = 59;
+            decreaseHours();
+        } else {
+            minutes--;
+        }
+    }
+
+    void decreaseSeconds() {
+        if (seconds == 0) {
+            seconds = 59;
+            decreaseMinutes();
+        } else {
+            seconds--;
         }
     }
 };
-
-Time currentTime(0, 1, 0);
 
 class PortPin {
 public:
@@ -168,7 +200,7 @@ public:
         count++;
         // once per second
         if (count % HZ == 0) {
-            currentTime.increase();
+            currentTime.increaseSeconds();
         }
 
         count = count % HZ;
@@ -210,6 +242,7 @@ private:
     };
 
     unsigned short count = HZ;
+    Time currentTime = {0, 1, 0};
 
 };
 
