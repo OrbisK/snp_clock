@@ -91,7 +91,7 @@ public:
 class HardwareController {
 public:
     HardwareController() {
-        // PRR = 0; // Enable all power reduction
+        PRR = 0; // Enable all power reduction
 
         // Set the pins to output for minutes and hours
         DDRC |= (1 << PC0) | (1 << PC1) | (1 << PC2) | (1 << PC3) | (1 << PC4) | (1 << PC5);
@@ -105,6 +105,13 @@ public:
         PCICR |= (1 << PCIE2); // Enable PCINT23..16 pin change interrupt
         PCMSK2 |= (1 << PCINT23); // Enable PCINT23
 
+        // Konfigurieren Sie den Pin, an dem PCINT1 angeschlossen ist, als Eingang
+        DDRB &= ~(1 << DDB1); // Set PB1 as input
+        PORTB |= (1 << PB1); // Enable pull-up resistor on PB1
+
+        // Aktivieren Sie den Pin-Change-Interrupt für PCINT1
+        PCICR |= (1 << PCIE0); // Enable PCINT7..0 pin change interrupt
+        PCMSK0 |= (1 << PCINT1); // Enable PCINT1
 
         // Configure INT1 (PD3) to respond to the falling edge
         EICRA |= (1 << ISC11);
@@ -198,27 +205,35 @@ public:
     }
 
     void handleInterrupt1() {
-        currentTime.increseMinutes();
-        // if (true) {
-            // updatePowerMode();
-        // }
+        updatePowerMode();
     }
 
     void handlePInterrupt23() {
-        // bool currentPinState = PIND & (1 << PD7); // Read the current state of PD7
-        // if (currentPinState && !lastPinState) {
-        //     // Rising edge detected
-        //     // Handle rising edge
-        // } else if (!currentPinState && lastPinState) {
-        //
-        //     // Falling edge detected
-        //     // Handle falling edge
-        // }
+        const bool currentPinState = PIND & (1 << PD7); // Read the current state of PD7
+        if (currentPinState && !lastPinState0) {
+            // Rising edge detected
+            // Handle rising edge
+        } else if (!currentPinState && lastPinState0) {
+            currentTime.increseMinutes();
+            // Falling edge detected
+            // Handle falling edge
+        }
 
+        lastPinState0 = currentPinState;
     }
 
     void handlePInterrupt1() {
-        currentTime.decreaseMinutes();
+        const bool currentPinState = PINB & (1 << PB1); // Read the current state of PB1
+        if (currentPinState && !lastPinState1) {
+            // Rising edge detected
+            // Handle rising edge
+        } else if (!currentPinState && lastPinState1) {
+            currentTime.decreaseMinutes();
+            // Falling edge detected
+            // Handle falling edge
+        }
+
+        lastPinState1 = currentPinState;
     }
 
     void handleTimer2() {
@@ -263,7 +278,8 @@ private:
         PortPin(&PORTC, PC4),
         PortPin(&PORTC, PC5),
     };
-    bool lastPinState = false;
+    bool lastPinState0 = false;
+    bool lastPinState1 = false;
     unsigned short count = HZ;
     Time currentTime = Time(0, 10, 0);
 };
@@ -274,20 +290,18 @@ ISR(INT1_vect) {
     hardwareController.handleInterrupt1();
 }
 
-
-
-
-ISR(PCINT23_vect) {
-    // hardwareController.handlePInterrupt23();
+ISR(PCINT2_vect) {
+    hardwareController.handlePInterrupt23();
 }
 
 ISR(TIMER2_COMPA_vect) {
     hardwareController.handleTimer2();
 }
 
-ISR(PCINT1_vect) {
-    //hardwareController.handleInterrupt1();
+ISR(PCINT0_vect) {
+    hardwareController.handlePInterrupt1();
 }
+
 
 int main() {
     while (true) {
