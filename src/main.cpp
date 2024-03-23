@@ -36,7 +36,7 @@ public:
         }
     }
 
-    void increaseSeconds(){
+    void increaseSeconds() {
         seconds++;
         if (seconds == 60) {
             seconds = 0;
@@ -91,13 +91,20 @@ public:
 class HardwareController {
 public:
     HardwareController() {
+        // PRR = 0; // Enable all power reduction
+
         // Set the pins to output for minutes and hours
         DDRC |= (1 << PC0) | (1 << PC1) | (1 << PC2) | (1 << PC3) | (1 << PC4) | (1 << PC5);
         DDRD |= (1 << PD0) | (1 << PD1) | (1 << PD4) | (1 << PD5) | (1 << PD6);
 
         // Configure buttons on PD2 and PD3
         DDRD &= ~((1 << DDD2) | (1 << DDD3));
-        PORTD |= (1 << PD2) | (1 << PD3);
+        PORTD |= (1 << PD2) | (1 << PD3) | (1 << PD7);
+
+        //DDRD &= ~(1 << DDD7); // Set PD7 as input
+        PCICR |= (1 << PCIE2); // Enable PCINT23..16 pin change interrupt
+        PCMSK2 |= (1 << PCINT23); // Enable PCINT23
+
 
         // Configure INT1 (PD3) to respond to the falling edge
         EICRA |= (1 << ISC11);
@@ -132,13 +139,13 @@ public:
         switch (powerMode) {
             case NORMAL:
                 powerMode = POWER_SAVE;
-            break;
+                break;
             case POWER_SAVE:
                 powerMode = SLEEP;
-            break;
+                break;
             case SLEEP:
                 powerMode = NORMAL;
-            break;
+                break;
         }
         applyPowerMode();
     }
@@ -191,9 +198,27 @@ public:
     }
 
     void handleInterrupt1() {
-        if (true) {
-            updatePowerMode();
-        }
+        currentTime.increseMinutes();
+        // if (true) {
+            // updatePowerMode();
+        // }
+    }
+
+    void handlePInterrupt23() {
+        // bool currentPinState = PIND & (1 << PD7); // Read the current state of PD7
+        // if (currentPinState && !lastPinState) {
+        //     // Rising edge detected
+        //     // Handle rising edge
+        // } else if (!currentPinState && lastPinState) {
+        //
+        //     // Falling edge detected
+        //     // Handle falling edge
+        // }
+
+    }
+
+    void handlePInterrupt1() {
+        currentTime.decreaseMinutes();
     }
 
     void handleTimer2() {
@@ -210,7 +235,6 @@ public:
         if (sleepEnabled) {
             handleSleepMode();
         } else {
-            // currentTime.increase();
             if (count % led_off_proportion == 0) {
                 timeToPins(currentTime);
             } else {
@@ -220,30 +244,28 @@ public:
         }
     }
 
-
 private:
     POWER_MODE powerMode;
     unsigned short led_off_proportion = POWER_SAVE_PROPORTION;
     volatile bool sleepEnabled = false; // Zustandsvariable für den Schlafmodus
     PortPin hourPins[5] = {
-            PortPin(&PORTD, PD0),
-            PortPin(&PORTD, PD1),
-            PortPin(&PORTD, PD4),
-            PortPin(&PORTD, PD5),
-            PortPin(&PORTD, PD6),
+        PortPin(&PORTD, PD0),
+        PortPin(&PORTD, PD1),
+        PortPin(&PORTD, PD4),
+        PortPin(&PORTD, PD5),
+        PortPin(&PORTD, PD6),
     };
     PortPin minutePins[6] = {
-            PortPin(&PORTC, PC0),
-            PortPin(&PORTC, PC1),
-            PortPin(&PORTC, PC2),
-            PortPin(&PORTC, PC3),
-            PortPin(&PORTC, PC4),
-            PortPin(&PORTC, PC5),
+        PortPin(&PORTC, PC0),
+        PortPin(&PORTC, PC1),
+        PortPin(&PORTC, PC2),
+        PortPin(&PORTC, PC3),
+        PortPin(&PORTC, PC4),
+        PortPin(&PORTC, PC5),
     };
-
+    bool lastPinState = false;
     unsigned short count = HZ;
-    Time currentTime = {0, 1, 0};
-
+    Time currentTime = Time(0, 10, 0);
 };
 
 HardwareController hardwareController;
@@ -253,8 +275,18 @@ ISR(INT1_vect) {
 }
 
 
+
+
+ISR(PCINT23_vect) {
+    // hardwareController.handlePInterrupt23();
+}
+
 ISR(TIMER2_COMPA_vect) {
     hardwareController.handleTimer2();
+}
+
+ISR(PCINT1_vect) {
+    //hardwareController.handleInterrupt1();
 }
 
 int main() {
