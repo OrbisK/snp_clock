@@ -102,7 +102,6 @@ public:
         DDRD &= ~((1 << DDD2) | (1 << DDD3));
         PORTD |= (1 << PD2) | (1 << PD3) | (1 << PD7);
 
-        //DDRD &= ~(1 << DDD7); // Set PD7 as input
         PCICR |= (1 << PCIE2); // Enable PCINT23..16 pin change interrupt
         PCMSK2 |= (1 << PCINT23); // Enable PCINT23
 
@@ -124,7 +123,7 @@ public:
 
         // Set up Timer 2 control register A and B
         TCCR2A |= (1 << WGM21); // Configure timer for CTC mode
-        TCCR2B |= (1 << CS20); // Set prescaler to
+        TCCR2B |= (1 << CS20); // Set prescaler to 4
 
         // Set the compare match register to the value that generates an interrupt every second - 255 is 1 second
         // calculate the value for given HZ
@@ -197,14 +196,6 @@ public:
         sleep_mode(); // Enter sleep mode
     }
 
-    void setCount(const unsigned short c) {
-        count = c;
-    }
-
-    unsigned short getCount() const {
-        return count;
-    }
-
     void handleInterrupt1() {
         updatePowerMode();
     }
@@ -212,9 +203,7 @@ public:
     void handlePInterrupt23() {
         const bool currentPinState = PIND & (1 << PD7); // Read the current state of PD7
         if (currentPinState && !lastPinState0) {
-            if(upCounter < LONG_PRESS_COUNT) {
-                currentTime.increseMinutes();
-            }
+            currentTime.increseMinutes();
             upPressed = false;
             // Rising edge detected
             // Handle rising edge
@@ -231,13 +220,10 @@ public:
     void handlePInterrupt1() {
         const bool currentPinState = PINB & (1 << PB1); // Read the current state of PB1
         if (currentPinState && !lastPinState1) {
-            if(downCounter < LONG_PRESS_COUNT) {
-                currentTime.increseMinutes();
-            }
+            currentTime.decreaseMinutes();
             downPressed = false;
             // Rising edge detected
             // Handle rising edge
-
         } else if (!currentPinState && lastPinState1) {
             downPressed = true;
             // Falling edge detected
@@ -252,36 +238,37 @@ public:
     }
 
     void handleFastForwardUp() {
-        if(count % 2 == 0) {
+        if (count % 2 == 0) {
             currentTime.increseMinutes();
-
         }
     }
 
     void handleFastForwardDown() {
-        currentTime.increseMinutes();
+        if (count % 2 == 0) {
+            currentTime.decreaseMinutes();
+        }
     }
 
     void handleTickPassed() {
-        if(upPressed) {
+        if (upPressed) {
+            downCounter = 0;
             upCounter += 1;
-            if(upCounter > LONG_PRESS_COUNT) {
+            if (upCounter > LONG_PRESS_COUNT) {
                 handleFastForwardUp();
             }
-        }else {
+        } else {
             upCounter = 0;
         }
 
-        if(downPressed) {
+        if (downPressed) {
+            upCounter = 0;
             downCounter += 1;
-            if(downCounter > LONG_PRESS_COUNT) {
+            if (downCounter > LONG_PRESS_COUNT) {
                 handleFastForwardDown();
             }
-        }else {
+        } else {
             downCounter = 0;
         }
-
-
     }
 
     void handleTimer2() {
@@ -327,8 +314,8 @@ private:
         PortPin(&PORTC, PC4),
         PortPin(&PORTC, PC5),
     };
-    bool lastPinState0 = false;
-    bool lastPinState1 = false;
+    bool lastPinState0 = true;
+    bool lastPinState1 = true;
     unsigned short count = HZ;
     Time currentTime = Time(0, 10, 0);
     bool upPressed = false;
