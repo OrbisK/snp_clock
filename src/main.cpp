@@ -170,6 +170,8 @@ public:
                 sleepEnabled = false;
                 break;
             case SLEEP:
+                upPressed = false;
+                downPressed = false;
                 sleepEnabled = true;
                 break;
         }
@@ -197,6 +199,10 @@ public:
     }
 
     void handlePInterrupt23() {
+        if(sleepEnabled) {
+            return;
+        }
+
         const bool currentPinState = PIND & (1 << PD7); // Read the current state of PD7
         if (currentPinState && !lastPinState0) {
             currentTime.increseMinutes();
@@ -214,6 +220,10 @@ public:
     }
 
     void handlePInterrupt1() {
+        if(sleepEnabled) {
+            return;
+        }
+
         const bool currentPinState = PINB & (1 << PB1); // Read the current state of PB1
         if (currentPinState && !lastPinState1) {
             currentTime.decreaseMinutes();
@@ -246,6 +256,9 @@ public:
     }
 
     void handleTickPassed() {
+        if(sleepEnabled) {
+            return;
+        }
         if (upPressed) {
             downCounter = 0;
             upCounter += 1;
