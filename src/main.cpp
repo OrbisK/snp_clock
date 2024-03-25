@@ -98,6 +98,8 @@ public:
         DDRC |= (1 << PC0) | (1 << PC1) | (1 << PC2) | (1 << PC3) | (1 << PC4) | (1 << PC5);
         DDRD |= (1 << PD0) | (1 << PD1) | (1 << PD4) | (1 << PD5) | (1 << PD6);
 
+        DDRB |= (1 << PB0); // Set PB0 as output for seconds
+
         // Configure buttons on PD2 and PD3
         DDRD &= ~((1 << DDD2) | (1 << DDD3));
         PORTD |= (1 << PD2) | (1 << PD3) | (1 << PD7);
@@ -188,6 +190,8 @@ public:
         for (int i = 0; i < 6; i++) {
             minutePins[i].set(time.minutes & (1 << i));
         }
+
+        secondPin.set(time.seconds % 2);
     }
 
     void handleSleepMode() const {
@@ -314,6 +318,8 @@ private:
         PortPin(&PORTC, PC4),
         PortPin(&PORTC, PC5),
     };
+
+    PortPin secondPin = PortPin(&PORTB, PB0);
     bool lastPinState0 = true;
     bool lastPinState1 = true;
     unsigned short count = HZ;
