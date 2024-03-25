@@ -175,14 +175,6 @@ public:
         }
     }
 
-    bool isSleepEnabled() const {
-        return sleepEnabled;
-    }
-
-    unsigned short getLedOffProportion() const {
-        return led_off_proportion;
-    }
-
     void timeToPins(const Time &time) const {
         for (int i = 0; i < 5; i++) {
             hourPins[i].set(time.hours & (1 << i));
