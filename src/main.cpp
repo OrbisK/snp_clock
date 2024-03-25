@@ -123,7 +123,7 @@ public:
 
         // Set up Timer 2 control register A and B
         TCCR2A |= (1 << WGM21); // Configure timer for CTC mode
-        TCCR2B |= (1 << CS20); // Set prescaler to 4
+        TCCR2B |= (1 << CS20); // Set prescaler to no prescaling
 
         // Set the compare match register to the value that generates an interrupt every second - 255 is 1 second
         // calculate the value for given HZ
