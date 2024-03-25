@@ -5,6 +5,7 @@
 #define HZ 128
 #define POWER_SAVE_PROPORTION 3
 #define NORMAL_PROPORTION 1
+#define LONG_PRESS_COUNT 40
 
 enum POWER_MODE {
     NORMAL,
@@ -211,10 +212,15 @@ public:
     void handlePInterrupt23() {
         const bool currentPinState = PIND & (1 << PD7); // Read the current state of PD7
         if (currentPinState && !lastPinState0) {
+            if(upCounter < LONG_PRESS_COUNT) {
+                currentTime.increseMinutes();
+            }
+            upPressed = false;
             // Rising edge detected
             // Handle rising edge
         } else if (!currentPinState && lastPinState0) {
-            currentTime.increseMinutes();
+            upPressed = true;
+
             // Falling edge detected
             // Handle falling edge
         }
@@ -225,10 +231,15 @@ public:
     void handlePInterrupt1() {
         const bool currentPinState = PINB & (1 << PB1); // Read the current state of PB1
         if (currentPinState && !lastPinState1) {
+            if(downCounter < LONG_PRESS_COUNT) {
+                currentTime.increseMinutes();
+            }
+            downPressed = false;
             // Rising edge detected
             // Handle rising edge
+
         } else if (!currentPinState && lastPinState1) {
-            currentTime.decreaseMinutes();
+            downPressed = true;
             // Falling edge detected
             // Handle falling edge
         }
@@ -236,12 +247,50 @@ public:
         lastPinState1 = currentPinState;
     }
 
+    void handleSecondPassed() {
+        currentTime.increaseSeconds();
+    }
+
+    void handleFastForwardUp() {
+        if(count % 2 == 0) {
+            currentTime.increseMinutes();
+
+        }
+    }
+
+    void handleFastForwardDown() {
+        currentTime.increseMinutes();
+    }
+
+    void handleTickPassed() {
+        if(upPressed) {
+            upCounter += 1;
+            if(upCounter > LONG_PRESS_COUNT) {
+                handleFastForwardUp();
+            }
+        }else {
+            upCounter = 0;
+        }
+
+        if(downPressed) {
+            downCounter += 1;
+            if(downCounter > LONG_PRESS_COUNT) {
+                handleFastForwardDown();
+            }
+        }else {
+            downCounter = 0;
+        }
+
+
+    }
+
     void handleTimer2() {
         count++;
         // once per second
         if (count % HZ == 0) {
-            currentTime.increaseSeconds();
+            handleSecondPassed();
         }
+        handleTickPassed();
 
         count = count % HZ;
     }
@@ -282,6 +331,10 @@ private:
     bool lastPinState1 = false;
     unsigned short count = HZ;
     Time currentTime = Time(0, 10, 0);
+    bool upPressed = false;
+    bool downPressed = false;
+    unsigned short upCounter = 0;
+    unsigned short downCounter = 0;
 };
 
 HardwareController hardwareController;
