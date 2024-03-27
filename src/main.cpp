@@ -92,7 +92,7 @@ public:
 class HardwareController {
 public:
     HardwareController() {
-        PRR = 0; // Enable all power reduction
+        PRR |= (1 << PRTWI) | (1 << PRTIM1) | (1 << PRTIM0) | (1 << PRSPI) | (1 << PRUSART0) | (1 << PRADC);
 
         // Set the pins to output for minutes and hours
         DDRC |= (1 << PC0) | (1 << PC1) | (1 << PC2) | (1 << PC3) | (1 << PC4) | (1 << PC5);
